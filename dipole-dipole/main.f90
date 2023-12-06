@@ -45,7 +45,7 @@ print*, ' number of md step', ntot
 read(12,*) nskip !
 print*,'**** Number of data skiped ****', nskip
 
-print*, nirdata 
+read(12,*) nirdata 
 print*,'**** Number of data will be used for phonon DOS and IR spectra cal. is****', nirdata
 
 read(12, *) dt 
