@@ -29,9 +29,10 @@ do i=1, nc
 
 do k =1, 3 
     do j=1, natms
-      cdata(1:) = cvel(1:nvel, j, k)
+      cdata(1:nvel) = cvel(1:nvel, j, k)
+      cdata(nvel+1:nc) = 0.0
 !            !print*, cdata(ncount)
-    enddo
+!    enddo
 
      w = cal_correl(cdata, cdata)
      
@@ -39,6 +40,7 @@ do k =1, 3
         vv_correl(l) = vv_correl(l) + w(l)
        enddo
 enddo 
+enddo
 
 !       !print*, 'AVG value ', vv_correl(1)
 !       vv_correl(1:nc)= vv_correl(1:nc) !/vv_correl(1) ! normalization 
@@ -91,7 +93,7 @@ enddo
     do k =1, 3 
          cdata(1:) =0.0
          cdata(1:ndata) = pol(k,1:ndata)
-
+          
          w = cal_correl(cdata, cdata)
          
            do i=1, nc 

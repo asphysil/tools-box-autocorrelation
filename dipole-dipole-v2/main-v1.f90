@@ -20,8 +20,6 @@ program main_program
     real(dp), dimension(:), allocatable :: loc_mass 
     real(dp) :: log_result 
     real(dp) :: xn 
-    integer :: nvdata2pow
-    integer :: npol2pow
     integer :: nskip
     integer :: nirdata 
     integer :: i, j, k 
@@ -126,16 +124,15 @@ else
     print*, '*** Number of data to be used for the calculation is *** ', ndata  
 endif
 
-nvdata = ndata - 1 ! number of data for velocity calculation 
+nvdata= ndata - 1 ! number of data for velocity calculation 
 
 ! acf 
-!xn = real(2*nvdata, kind=dp)! number of data to be used for ACF 
+xn = real(2*nvdata, kind=dp)! number of data to be used for ACF 
 ! ! Find the closest lower  powers of 2
-xn = real(nvdata, kind=dp)! number of data to be used for ACF
 log_result = log(xn) / log(2.0)
-nvdata2pow = 2**(int(log_result))
-print*, '*** Number of data to be used for the calculation is *** ', nvdata2pow
-nc = 2*nvdata2pow ! due to non-preiodic data
+! next closest lower  powers of 2
+nc = 2**(int(log_result)+1)
+
 ! for fft 
 if ( nirdata >= int(nc/2)) then
 ! xn = real(2000, kind=dp)
@@ -163,14 +160,13 @@ print*, '**Colsed integer power of 2 for number**', nirdata,  '**is**',  nc_fft
 !********************For IR spectra *********************
 
 ! acf 
-xn = real(ndata, kind=dp)! number of data to be used for ACF 
+xn = real(2*ndata, kind=dp)! number of data to be used for ACF 
 ! ! Find the closest lower  powers of 2
 log_result = log(xn) / log(2.0)
-npol2pow = 2**(int(log_result))
-nc_ir = 2*npol2pow
+nc_ir = 2**(int(log_result)+1)
 
 ! for fft 
-if ( nirdata >= int(nc_ir/2)) then
+if ( nirdata >= int(nc/2)) then
 ! xn = real(2000, kind=dp)
 !else
 ! xn = real(nvdata, kind=dp)
@@ -182,7 +178,11 @@ else
 xn = real(nirdata, kind=dp)
 log_result = log(xn) / log(2.0)
 nc_ir_fft = 2**(int(log_result)+1)
+
 endif
+
+!log_result = log(xn) / log(2.0)
+!nc_ir_fft = 2**(int(log_result)+1)
 
 print*, '**Total number data**', ntot,  '**number of data for polarization calculation**', ndata
 print*, '**Colsed integer power of 2 for number **', 2*ndata,  ' **is** ', nc_ir

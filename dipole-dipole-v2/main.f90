@@ -10,7 +10,7 @@ program main_program
 
     use sys_properties_cal, only: cal_velocity_forward_method,cal_polarization
 
-    use time_correl, only : cal_vel_correl, cal_phonon_dos,cal_pol_correl,cal_ir_spectra
+    use auto_time_correl_cal, only : cal_vv_correl, cal_pp_correl
     
     use writefiles, only : write_vasp_md,write_vasp_vac,write_vasp_ph_dos,&
     write_test_fftw, write_vasp_md_pol, write_vasp_pol_acf, write_vasp_ir_spectra
@@ -117,7 +117,7 @@ print*, ' Please modify number of data to be used for ACF'
 !nskip=600 
 
 
-ndata = ntot-nskip 
+ndata  = ntot-nskip 
 if (ntot<nskip) then 
     print*, ' The number of data set must be greater than 100'
     print*, ' program will stop here'
@@ -129,20 +129,22 @@ endif
 nvdata = ndata - 1 ! number of data for velocity calculation 
 
 ! acf 
-!xn = real(2*nvdata, kind=dp)! number of data to be used for ACF 
-! ! Find the closest lower  powers of 2
-xn = real(nvdata, kind=dp)! number of data to be used for ACF
-log_result = log(xn) / log(2.0)
-nvdata2pow = 2**(int(log_result))
-print*, '*** Number of data to be used for the calculation is *** ', nvdata2pow
-nc = 2*nvdata2pow ! due to non-preiodic data
-! for fft 
-if ( nirdata >= int(nc/2)) then
+! ! Find the closest number which is divided by 2
+! Calculate the closest even number
+if (mod(nvdata, 2) == 0) then
+    nv_even_no = nvdata
+else
+    nv_even_no = nvdata  - mod(nvdata, 2)
+endif
+
+nc = nv_even_no/2
+
+if ( nirdata >= nc) then
 ! xn = real(2000, kind=dp)
 !else
 ! xn = real(nvdata, kind=dp)
 print*, '************Full data set of ACF is used for phonon dos calculation********'
-xn = real(int(nc/2), kind=dp)
+xn = real(nc, kind=dp)
 log_result = log(xn) / log(2.0)
 nc_fft = 2**(int(log_result)+1)
 else
@@ -157,25 +159,28 @@ endif
 
 print*, '**Total number data**', ntot,  '**number of velocity data**', nvdata
 print*, '**Colsed integer power of 2 for number **', 2*nvdata,  ' **is** ', nc
-print*, '**number of correlation data **', nc/2
+print*, '**number of correlation data **', nc
 print*, '**Colsed integer power of 2 for number**', nirdata,  '**is**',  nc_fft
 ! 
 !********************For IR spectra *********************
 
 ! acf 
-xn = real(ndata, kind=dp)! number of data to be used for ACF 
-! ! Find the closest lower  powers of 2
-log_result = log(xn) / log(2.0)
-npol2pow = 2**(int(log_result))
-nc_ir = 2*npol2pow
+! Calculate the closest even number
+if (mod(ndata, 2) == 0) then
+    nir_even_no = ndata
+else
+    nir_even_no = ndata  - mod(ndata, 2)
+endif
+
+nc_ir = nir_even_no /2 
 
 ! for fft 
-if ( nirdata >= int(nc_ir/2)) then
+if ( nirdata >= nc_ir) then
 ! xn = real(2000, kind=dp)
 !else
 ! xn = real(nvdata, kind=dp)
 print*, '************Full data set of ACF is used for phonon dos calculation********'
-xn = real(int(nc_ir/2), kind=dp)
+xn = real(nc_ir, kind=dp)
 log_result = log(xn) / log(2.0)
 nc_ir_fft = 2**(int(log_result)+1)
 else
@@ -185,8 +190,8 @@ nc_ir_fft = 2**(int(log_result)+1)
 endif
 
 print*, '**Total number data**', ntot,  '**number of data for polarization calculation**', ndata
-print*, '**Colsed integer power of 2 for number **', 2*ndata,  ' **is** ', nc_ir
-print*, '**number of correlation data **', nc_ir/2
+print*, '**ndata=', ndata_org,  ' **ndata/2** ', nc_ir
+print*, '**number of correlation data **', nc_ir
 print*, '**Colsed integer power of 2 for number**', nirdata,  '**is**',  nc_ir_fft
 ! 
 
@@ -203,7 +208,7 @@ allocate(vel_fdiff(nvdata, natms, ndim))
 !allocate(vel_bdiff(ndim, natms, ndata))
 allocate(ek(nvdata), temp(nvdata))
 
-allocate(cvel(nvdata, natms, ndim))
+allocate(cvel(ndim, natms, nv_even_no))
 allocate(vv_corr(nc))
 allocate(ph_dos(nc_fft/2) )
 
@@ -233,13 +238,13 @@ close(read_fileid)
 call  cal_velocity_forward_method(natms, nskip, nvdata) 
 !
 ! ! first check how many data to be skip 
- call cal_vel_correl(nc,  nvdata, vv_corr)
+call cal_velocity_correl(natms, nv_even_no, nc, vv_correl)
 
 ! FFT of auto-correlation
 call cal_phonon_dos(nc_fft, vv_corr(1:nc_fft), ph_dos)
 !
 call cal_polarization(natms, nskip, ndata)
-call cal_pol_correl(nc_ir, ndata, pp_corr)
+call cal_pol_correl(nir_even_no, nc, pp_correl)
 call cal_ir_spectra(nc_ir_fft, pp_corr(1:nc_ir_fft), ir_sp)
 
 write_fileid1=20
