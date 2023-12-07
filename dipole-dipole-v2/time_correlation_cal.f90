@@ -3,7 +3,7 @@ module auto_time_correl_cal
     use sys_constants, only: ndim, Navogadro, ev2J, kb   
     implicit none
     private 
-    public :: cal_vv_correl, cal_pp_correl
+    public :: cal_vv_correl, cal_pp_correl,cal_phonon_dos,cal_ir_spectra
 contains
 
 subroutine cal_vv_correl(natms, ndata, nc, vv_correl)
@@ -15,6 +15,7 @@ subroutine cal_vv_correl(natms, ndata, nc, vv_correl)
 ! local 
 integer :: n1, n2, tau
 integer :: i, j, k, i1, i2
+real(dp) :: temp 
 
 if ( (ndata/2) == nc) then
         print*, " Error in 'subroutine cal_velocity_correl' input ndata must be divided by 2"
@@ -45,8 +46,9 @@ do k= 1, 3
       enddo
     vv_correl(k,1:nc) = vv_correl(k,1:nc)/vv_correl(k,1) ! Normilized 
 enddo
+end subroutine cal_vv_correl
 
- subroutine cal_pp_correl(ndata, nc, pp_correl)
+subroutine cal_pp_correl(ndata, nc, pp_correl)
     use data_struc, only : pol, born_charg 
 implicit none 
 integer, intent(in) :: ndata, nc
@@ -82,5 +84,48 @@ do k= 1, 3
 enddo
 
  end subroutine cal_pp_correl 
+
+!!!!!!!!!! Fourier tranform of time correlation function
+subroutine cal_phonon_dos(nc, vv_corr, ph_dos)
+    USE nrutil, ONLY :assert,assert_eq
+    use nr, only :  correl_fft_dp
+    IMPLICIT NONE
+    integer, intent(in) :: nc 
+    REAL(DP), DIMENSION(:), INTENT(IN) :: vv_corr(nc) 
+    real(dp), dimension(:), intent(out) :: ph_dos(nc/2)
+
+    COMPLEX(DPC), DIMENSION(size(vv_corr)/2) :: cdata 
+    
+
+integer :: i 
+
+  cdata = correl_fft_dp(vv_corr) ! FFT 
+ 
+do i =1, nc/2 
+    ph_dos(i) = abs(cdata(i))**2
+enddo 
+
+  end subroutine cal_phonon_dos
+
+subroutine cal_ir_spectra(nc, pp_corr, ir_sp)
+        USE nrutil, ONLY :assert,assert_eq
+        use nr, only :  correl_fft_dp
+      IMPLICIT NONE
+      integer, intent(in) :: nc 
+      REAL(DP), DIMENSION(:), INTENT(IN) :: pp_corr(nc) 
+      real(dp), dimension(:), intent(out) :: ir_sp(nc/2)
+  
+      COMPLEX(DPC), DIMENSION(size(pp_corr)/2) :: cdata 
+      
+  
+  integer :: i 
+  
+    cdata = correl_fft_dp(pp_corr) ! FFT 
+   
+  do i =1, nc/2 
+      ir_sp(i) = abs(cdata(i))**2
+  enddo 
+  
+    end subroutine cal_ir_spectra   
 
 end module auto_time_correl_cal

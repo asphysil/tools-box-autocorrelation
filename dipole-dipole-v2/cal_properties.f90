@@ -34,8 +34,8 @@ do i=1, nvel
         endif 
 
        enddo 
-       vel_fdiff(i, j, 1:3) = matmul(v, latt_vec) *idt ! fraction to xyz
-       atms_vel(1:3,j,i) = vel_fdiff(i,j,1:3)
+       vel_fdiff(1:3,j, i) = matmul(v, latt_vec) *idt ! fraction to xyz
+       atms_vel(1:3,j,i) = vel_fdiff(1:3,j,i)
     enddo
  
 enddo
@@ -62,10 +62,10 @@ n_dp = real(nvel, kind=dp)
 
 do k= 1, 3
     do j=1, natms
-        x = sum(vel_fdiff(1:,j,k), dim=1)/n_dp ! Average velocity
+        x = sum(vel_fdiff(k,j,1:), dim=1)/n_dp ! Average velocity
         !print*,x 
         do i = 1, nvel 
-            cvel(i,j,k) = vel_fdiff(i,j,k) - x 
+            cvel(k,j,i) = vel_fdiff(k,j,i) - x 
         enddo
     enddo
 enddo
