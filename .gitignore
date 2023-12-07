@@ -3,6 +3,7 @@ SUPERCELL.vasp
 *.xyz
 *.dat
 *.xsf
+*x
 #macOs files
 .DS_Store
 #python
