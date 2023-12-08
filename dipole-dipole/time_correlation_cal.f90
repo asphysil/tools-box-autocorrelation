@@ -29,7 +29,7 @@ do i=1, nc
 
 do k =1, 3 
     do j=1, natms
-      cdata(1:nvel) = cvel(1:nvel, j, k)
+      cdata(1:nvel) = cvel(k, j, 1:nvel)
       cdata(nvel+1:nc) = 0.0
 !            !print*, cdata(ncount)
 !    enddo
@@ -55,21 +55,27 @@ v0 = vv_correl(1)
     
 end subroutine cal_vel_correl
 
-subroutine cal_phonon_dos(nc, vv_corr, ph_dos)
+subroutine cal_phonon_dos(nvv_corr, vv_corr, nc, ph_dos)
     IMPLICIT NONE
-    integer, intent(in) :: nc 
-    REAL(DP), DIMENSION(:), INTENT(IN) :: vv_corr(nc) 
+    integer, intent(in) :: nc, nvv_corr  
+    REAL(DP), DIMENSION(:), INTENT(IN) :: vv_corr(nvv_corr) 
     real(dp), dimension(:), intent(out) :: ph_dos(nc/2)
 
-    COMPLEX(DPC), DIMENSION(size(vv_corr)/2) :: cdata 
+    COMPLEX(DPC), DIMENSION(nc/2) :: cdata 
     
-
+real(dp), dimension(:) :: local_vv_corr(nc)
+real(dp) :: n1_dp 
 integer :: i 
 
-  cdata = correl_fft_dp(vv_corr) ! FFT 
+local_vv_corr(1:nvv_corr) = vv_corr(1:nvv_corr)
+local_vv_corr(nvv_corr+1:nc) = 0.0 
+
+  cdata = correl_fft_dp(local_vv_corr) ! FFT 
  
+  n1_dp = real(nvv_corr, kind=dp)
+
 do i =1, nc/2 
-    ph_dos(i) = abs(cdata(i))**2
+    ph_dos(i) = abs(cdata(i))**2/n1_dp
 enddo 
 
   end subroutine cal_phonon_dos
@@ -114,21 +120,27 @@ enddo
         
     end subroutine cal_pol_correl  
 
-    subroutine cal_ir_spectra(nc, pp_corr, ir_sp)
+    subroutine cal_ir_spectra(npp_corr, pp_corr, nc, ir_sp)
       IMPLICIT NONE
-      integer, intent(in) :: nc 
-      REAL(DP), DIMENSION(:), INTENT(IN) :: pp_corr(nc) 
+      integer, intent(in) :: nc, npp_corr 
+      REAL(DP), DIMENSION(:), INTENT(IN) :: pp_corr(npp_corr) 
       real(dp), dimension(:), intent(out) :: ir_sp(nc/2)
   
-      COMPLEX(DPC), DIMENSION(size(pp_corr)/2) :: cdata 
+      COMPLEX(DPC), DIMENSION(nc/2) :: cdata 
       
+      real(dp), dimension(:) :: local_pp_corr(nc)
+      integer :: i 
+      real(dp) :: n1_dp 
+
+      local_pp_corr(1:npp_corr) = pp_corr(1:npp_corr)
+      local_pp_corr(npp_corr+1:nc) = 0.0 
   
-  integer :: i 
-  
-    cdata = correl_fft_dp(pp_corr) ! FFT 
+    cdata = correl_fft_dp(local_pp_corr) ! FFT 
    
+    n1_dp = real(npp_corr, kind=dp)
+
   do i =1, nc/2 
-      ir_sp(i) = abs(cdata(i))**2
+      ir_sp(i) = abs(cdata(i))**2/n1_dp
   enddo 
   
     end subroutine cal_ir_spectra   

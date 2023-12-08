@@ -24,6 +24,9 @@ program main_program
     integer :: npol2pow
     integer :: nskip
     integer :: nirdata 
+    integer :: nvv_corr 
+    integer :: npp_corr 
+
     integer :: i, j, k 
     integer :: ierror
     integer :: junk 
@@ -129,13 +132,13 @@ endif
 nvdata = ndata - 1 ! number of data for velocity calculation 
 
 ! acf 
-!xn = real(2*nvdata, kind=dp)! number of data to be used for ACF 
 ! ! Find the closest lower  powers of 2
 xn = real(nvdata, kind=dp)! number of data to be used for ACF
 log_result = log(xn) / log(2.0)
 nvdata2pow = 2**(int(log_result))
 print*, '*** Number of data to be used for the calculation is *** ', nvdata2pow
-nc = 2*nvdata2pow ! due to non-preiodic data
+nc = 2*nvdata2pow ! correlated signal should be 2*nstep points 
+! https://github.com/elcorto/pwtools/blob/master/doc/source/written/background/phonon_dos.rst
 ! for fft 
 if ( nirdata >= int(nc/2)) then
 ! xn = real(2000, kind=dp)
@@ -144,21 +147,28 @@ if ( nirdata >= int(nc/2)) then
 print*, '************Full data set of ACF is used for phonon dos calculation********'
 xn = real(int(nc/2), kind=dp)
 log_result = log(xn) / log(2.0)
-nc_fft = 2**(int(log_result)+1)
+nc_fft = 2**(int(log_result))
 else
 xn = real(nirdata, kind=dp)
 log_result = log(xn) / log(2.0)
 nc_fft = 2**(int(log_result)+1)
-
+nvv_corr = nirdata 
 endif
+
+if (nirdata > nc/2 ) then 
+    print*, ' please decrese number of nirdata '
+    print*, ' program will stop here'
+    stop 
+endif 
 
 !log_result = log(xn) / log(2.0)
 !nc_fft = 2**(int(log_result)+1)
-
+print*, '********phonon DOS********'
 print*, '**Total number data**', ntot,  '**number of velocity data**', nvdata
-print*, '**Colsed integer power of 2 for number **', 2*nvdata,  ' **is** ', nc
+print*, '**Colsed integer power of 2 for number **', nvdata,  ' **is** ', nvdata2pow
 print*, '**number of correlation data **', nc/2
 print*, '**Colsed integer power of 2 for number**', nirdata,  '**is**',  nc_fft
+print*, '********END phonon DOS********'
 ! 
 !********************For IR spectra *********************
 
@@ -177,19 +187,27 @@ if ( nirdata >= int(nc_ir/2)) then
 print*, '************Full data set of ACF is used for phonon dos calculation********'
 xn = real(int(nc_ir/2), kind=dp)
 log_result = log(xn) / log(2.0)
-nc_ir_fft = 2**(int(log_result)+1)
+nc_ir_fft = 2**(int(log_result))
 else
 xn = real(nirdata, kind=dp)
 log_result = log(xn) / log(2.0)
 nc_ir_fft = 2**(int(log_result)+1)
+npp_corr = nirdata
 endif
 
+if (nirdata > nc_ir/2 ) then 
+print*, ' please decrese number of nirdata '
+print*, ' program will stop here'
+stop 
+endif 
+
+print*, '********IR********'
 print*, '**Total number data**', ntot,  '**number of data for polarization calculation**', ndata
-print*, '**Colsed integer power of 2 for number **', 2*ndata,  ' **is** ', nc_ir
+print*, '**Colsed integer power of 2 for number **', ndata,  ' **is** ', npol2pow
 print*, '**number of correlation data **', nc_ir/2
 print*, '**Colsed integer power of 2 for number**', nirdata,  '**is**',  nc_ir_fft
 ! 
-
+print*, '********END IR********'
 !
 allocate(latt_vec(ndim, ndim))
 
@@ -198,12 +216,12 @@ allocate(latt_vec(ndim, ndim))
 allocate(pos(ndim, natms, ntot)) ! Total number data set read
 
 allocate(atms_vel(ndim, natms, nvdata))
-allocate(vel_cdiff(nvdata, natms, ndim))
-allocate(vel_fdiff(nvdata, natms, ndim))
+allocate(vel_cdiff(ndim, natms, nvdata))
+allocate(vel_fdiff(ndim, natms, nvdata))
 !allocate(vel_bdiff(ndim, natms, ndata))
 allocate(ek(nvdata), temp(nvdata))
 
-allocate(cvel(nvdata, natms, ndim))
+allocate(cvel(ndim, natms, nvdata))
 allocate(vv_corr(nc))
 allocate(ph_dos(nc_fft/2) )
 
@@ -236,11 +254,11 @@ call  cal_velocity_forward_method(natms, nskip, nvdata)
  call cal_vel_correl(nc,  nvdata, vv_corr)
 
 ! FFT of auto-correlation
-call cal_phonon_dos(nc_fft, vv_corr(1:nc_fft), ph_dos)
+call cal_phonon_dos(nvv_corr, vv_corr(1:nvv_corr), nc_fft, ph_dos)
 !
 call cal_polarization(natms, nskip, ndata)
 call cal_pol_correl(nc_ir, ndata, pp_corr)
-call cal_ir_spectra(nc_ir_fft, pp_corr(1:nc_ir_fft), ir_sp)
+call cal_ir_spectra(npp_corr, pp_corr(1:npp_corr), nc_ir_fft, ir_sp)
 
 write_fileid1=20
 open(unit=write_fileid1, file='md-vasp.dat', action='write')

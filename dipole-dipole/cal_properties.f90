@@ -34,8 +34,8 @@ do i=1, nvel
         endif 
 
        enddo 
-       vel_fdiff(i, j, 1:3) = matmul(v, latt_vec) *idt ! fraction to xyz
-       atms_vel(1:3,j,i) = vel_fdiff(i,j,1:3)
+       vel_fdiff(1:3, j, i) = matmul(v, latt_vec) *idt ! fraction to xyz
+       atms_vel(1:3,j,i) = vel_fdiff(1:3, j, i)
     enddo
  
 enddo
@@ -62,10 +62,10 @@ n_dp = real(nvel, kind=dp)
 
 do k= 1, 3
     do j=1, natms
-        x = sum(vel_fdiff(1:,j,k), dim=1)/n_dp ! Average velocity
+        x = sum(vel_fdiff(k, j, 1:), dim=1)/n_dp ! Average velocity
         !print*,x 
         do i = 1, nvel 
-            cvel(i,j,k) = vel_fdiff(i,j,k) - x 
+            cvel(k, j, i) = vel_fdiff(k, j, i) - x 
         enddo
     enddo
 enddo
@@ -95,7 +95,7 @@ real(dp) :: na_dp1
         ! can be make eficient way to calculate polarization 
         do j =1, natms  
             do k =1, 3
-                v_frac(k) = pos(k, j, nskip+i) 
+                v_frac(k) =  pos(k, j, nskip+i) - pos(k, j, nskip)
                  ! PBC applied to account correct velocity direction 
                 if (v_frac(k)>0.5 ) then  ! 
                    v_frac(k)= v_frac(k) - 1.0 
@@ -103,9 +103,10 @@ real(dp) :: na_dp1
                     v_frac(k) = v_frac(k) + 1.0 
                 endif 
             enddo
-                v_car(1:3) = matmul(v_frac, latt_vec)
+                v_car = matmul(v_frac, latt_vec)
                 z_star = born_charg(:,:,j) 
-                dpol = matmul(v_car, z_star)
+                dpol = matmul(v_car, transpose(z_star))
+                ! https://docs.quantumatk.com/manual/Types/BornEffectiveCharge/BornEffectiveCharge.html
                 tot_dpol(1:3) = tot_dpol(1:3) + dpol(1:3)
         enddo
         pol(1:3, i) = tot_dpol(1:3)
@@ -117,8 +118,8 @@ real(dp) :: na_dp1
         avg_p(k) = sum(pol(k,:))/ np_dp 
     enddo
 
-        do i = 1, ndata 
-            do k =1 ,3 
+       do k =1, 3
+           do i = 1, ndata 
                   pol(k,i) = pol(k,i) - avg_p(k)
             enddo
         enddo
